@@ -2,11 +2,15 @@
 
 ###### Features:
 
-> 1, The system displays the total number of questions detected in the uploaded PDF, along with the number of unanswered questions.
+> 1, "The system displays the total number of questions detected in the uploaded PDF, along with the number of unanswered questions and the total number of empty or placeholder options."
 
-> 2, If the system is unable to recognize the correct answer for a specific question, you can manually assign it by selecting the appropriate option from the dropdown menu.
+> 2, "Questions with missing options (empty or only containing A, B, C, or D) are visually highlighted in the interface for easy review."
 
-> 3, You may export the processed data as a JSON file for your own use or integration into other systems.
+> 3, "If the system is unable to recognize the correct answer for a specific question, you can manually assign it by selecting the appropriate option from the dropdown menu."
+
+> 4, "Each question card also displays how many options are missing or incomplete, so you can quickly identify questions that need attention."
+
+> 5, "You may export the processed data as a JSON file for your own use or integration into other systems."
 
 _The content of your pdf file should be in this format_
 ```html
