@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <!-- Font Awesome 6 (free icons) for better UI -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     * {
       margin: 0;
@@ -477,72 +478,88 @@
 
   // Display fully editable UI cards (enhanced)
   function displayEditableJSON(data) {
-    if (!data || !data.length) {
-      document.getElementById("output").innerHTML = `<div class="empty-state"><i class="fas fa-info-circle"></i> No questions loaded. Upload PDF & convert.</div>`;
-      document.getElementById("totalQuestions").innerText = "0";
-      document.getElementById("nullCountBadge").innerText = "0";
-      document.getElementById("nullCount").innerHTML = "Null Answers: 0";
-      return;
-    }
-    
-    let nullCount = 0;
-    let html = '';
-    
-    data.forEach((item, idx) => {
-      const isNull = !item.answer || item.answer === null || item.answer === "";
-      if (isNull) nullCount++;
-      const cardClass = isNull ? "null-answer" : "valid-answer";
-      const ansVal = item.answer || "";
-      
-      html += `
-        <div class="question-card ${cardClass}" data-qidx="${idx}">
-          <div class="card-header">
-            <i class="fas fa-question-circle"></i> Question ${idx+1}
-            ${isNull ? '<span class="badge" style="background:#ffe4e2; color:#b91c1c;"><i class="fas fa-question"></i> Missing answer</span>' : '<span class="badge" style="background:#dcfce7; color:#166534;"><i class="fas fa-check-circle"></i> Answered</span>'}
+      if (!data || !data.length) {
+        document.getElementById("output").innerHTML = `<div class="empty-state"><i class="fas fa-info-circle"></i> No questions loaded. Upload PDF & convert.</div>`;
+        document.getElementById("totalQuestions").innerText = "0";
+        document.getElementById("nullCountBadge").innerText = "0";
+        document.getElementById("nullOptionsBadge")?.remove();
+        return;
+      }
+
+      let nullCount = 0;
+      let nullOptionsCount = 0; // <-- new counter
+      let html = '';
+
+      data.forEach((item, idx) => {
+        const isNull = !item.answer || item.answer === null || item.answer === "";
+        if (isNull) nullCount++;
+
+        // Count empty or placeholder options
+        let questionNullOptions = 0;
+        ['a','b','c','d'].forEach(opt => {
+          const val = item.options[opt] || "";
+          if (val.trim() === "" || /^[a-d]$/i.test(val.trim())) questionNullOptions++;
+        });
+        nullOptionsCount += questionNullOptions;
+
+        const cardClass = isNull ? "null-answer" : "valid-answer";
+        const ansVal = item.answer || "";
+
+        html += `
+          <div class="question-card ${cardClass}" data-qidx="${idx}">
+            <div class="card-header">
+              <i class="fas fa-question-circle"></i> Question ${idx+1}
+              ${isNull ? '<span class="badge" style="background:#ffe4e2; color:#b91c1c;"><i class="fas fa-question"></i> Missing answer</span>' : '<span class="badge" style="background:#dcfce7; color:#166534;"><i class="fas fa-check-circle"></i> Answered</span>'}
+              ${questionNullOptions > 0 ? `<span class="badge" style="background:#fff4e5; color:#f97316;"><i class="fas fa-exclamation-triangle"></i> ${questionNullOptions} empty option(s)</span>` : ''}
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label><i class="far fa-file-alt"></i> Question Text</label>
+                <textarea data-index="${idx}" data-field="question" rows="2">${escapeHtml(item.question)}</textarea>
+              </div>
+              
+              <label style="font-weight:600; margin-bottom: 8px; display:block;"><i class="fas fa-list"></i> Options</label>
+              <div class="options-row">
+                ${['a','b','c','d'].map(opt => {
+                  const val = item.options[opt] || "";
+                  const highlight = val.trim() === "" || /^[a-d]$/i.test(val.trim()) ? 'background:#fff4e5; border:1px solid #f97316;' : '';
+                  return `<div class="option-item" style="${highlight}"><label>${opt.toUpperCase()}:</label> <input type="text" data-index="${idx}" data-field="${opt}" value="${escapeHtml(val)}" placeholder="Option ${opt.toUpperCase()}"></div>`;
+                }).join('')}
+              </div>
+              
+              <div class="answer-selector">
+                <i class="fas fa-gavel"></i> <strong>Correct Answer:</strong>
+                <select data-index="${idx}" data-field="answer" style="width: auto; min-width: 100px;">
+                  <option value="">— Not set —</option>
+                  <option value="a" ${ansVal === 'a' ? 'selected' : ''}>A</option>
+                  <option value="b" ${ansVal === 'b' ? 'selected' : ''}>B</option>
+                  <option value="c" ${ansVal === 'c' ? 'selected' : ''}>C</option>
+                  <option value="d" ${ansVal === 'd' ? 'selected' : ''}>D</option>
+                </select>
+                <span style="font-size: 0.7rem; color:#475569;"><i class="fas fa-pen-alt"></i> editable</span>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label><i class="far fa-file-alt"></i> Question Text</label>
-              <textarea data-index="${idx}" data-field="question" rows="2">${escapeHtml(item.question)}</textarea>
-            </div>
-            
-            <label style="font-weight:600; margin-bottom: 8px; display:block;"><i class="fas fa-list"></i> Options</label>
-            <div class="options-row">
-              <div class="option-item"><label>A:</label> <input type="text" data-index="${idx}" data-field="a" value="${escapeHtml(item.options.a)}" placeholder="Option A"></div>
-              <div class="option-item"><label>B:</label> <input type="text" data-index="${idx}" data-field="b" value="${escapeHtml(item.options.b)}" placeholder="Option B"></div>
-              <div class="option-item"><label>C:</label> <input type="text" data-index="${idx}" data-field="c" value="${escapeHtml(item.options.c)}" placeholder="Option C"></div>
-              <div class="option-item"><label>D:</label> <input type="text" data-index="${idx}" data-field="d" value="${escapeHtml(item.options.d)}" placeholder="Option D"></div>
-            </div>
-            
-            <div class="answer-selector">
-              <i class="fas fa-gavel"></i> <strong>Correct Answer:</strong>
-              <select data-index="${idx}" data-field="answer" style="width: auto; min-width: 100px;">
-                <option value="">— Not set —</option>
-                <option value="a" ${ansVal === 'a' ? 'selected' : ''}>A</option>
-                <option value="b" ${ansVal === 'b' ? 'selected' : ''}>B</option>
-                <option value="c" ${ansVal === 'c' ? 'selected' : ''}>C</option>
-                <option value="d" ${ansVal === 'd' ? 'selected' : ''}>D</option>
-              </select>
-              <span style="font-size: 0.7rem; color:#475569;"><i class="fas fa-pen-alt"></i> editable</span>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-    
-    document.getElementById("output").innerHTML = html;
-    document.getElementById("totalQuestions").innerText = data.length;
-    document.getElementById("nullCountBadge").innerText = nullCount;
-    const nullSpan = document.getElementById("nullCount");
-    if (nullSpan) nullSpan.innerHTML = `<i class="fas fa-ban"></i> Unanswered: ${nullCount}`;
-    else {
-      const newSpan = document.createElement("div");
+        `;
+      });
+
+      document.getElementById("output").innerHTML = html;
+      document.getElementById("totalQuestions").innerText = data.length;
+      document.getElementById("nullCountBadge").innerText = nullCount;
+
+      // Add a new badge for empty options
+      let statsBar = document.getElementById("statsPill");
+      let nullOptionsSpan = document.getElementById("nullOptionsBadge");
+      if (!nullOptionsSpan) {
+        nullOptionsSpan = document.createElement("span");
+        nullOptionsSpan.id = "nullOptionsBadge";
+        nullOptionsSpan.style.marginLeft = "8px";
+        statsBar.appendChild(nullOptionsSpan);
+      }
+      nullOptionsSpan.innerHTML = ` · <i class="fas fa-exclamation-circle"></i> ${nullOptionsCount} empty option(s)`;
+
+      window.currentData = data;
     }
-    // update statsPill and also maintain old element for compatibility
-    const oldNullElem = document.getElementById("nullCount");
-    if(oldNullElem) oldNullElem.innerHTML = `Null Answers: ${nullCount}`;
-    window.currentData = data;
-  }
   
   // simple escape to avoid XSS
   function escapeHtml(str) {
@@ -560,7 +577,11 @@
   // updateJSON from UI controls (preserves all functionality)
   function updateJSON() {
     if (!window.currentData || window.currentData.length === 0) {
-      alert("No data loaded. Please convert a PDF first.");
+      Swal.fire({
+          icon: 'warning',
+          title: 'No Data',
+          text: 'No data loaded. Please convert a PDF first.',
+          confirmButtonColor: '#1e3a5f'        });
       return;
     }
     const inputs = document.querySelectorAll("[data-index]");
@@ -582,12 +603,24 @@
     });
     // re-render to update null highlighting and badges
     displayEditableJSON(window.currentData);
-    alert("✅ JSON data updated! You can now download the modified JSON.");
+    Swal.fire({
+        icon: 'success',
+        title: 'Updated!',
+        text: 'JSON updated successfully!',
+        toast: true,
+        timer: 2000,
+        showConfirmButton: false
+    });
   }
   
   function downloadJSON() {
     if (!window.currentData || window.currentData.length === 0) {
-      alert("No data to download. Please convert PDF first.");
+      Swal.fire({
+          icon: 'warning',
+          title: 'No Data',
+          text: 'No data to download. Please convert a PDF first.',
+          confirmButtonColor: '#1e3a5f'
+      });
       return;
     }
     const jsonStr = JSON.stringify(window.currentData, null, 2);
@@ -606,7 +639,12 @@
     const fileInput = document.getElementById('upload');
     const file = fileInput.files[0];
     if (!file) {
-      alert("Please select a PDF file first.");
+      Swal.fire({
+          icon: 'warning',
+          title: 'No File',
+          text: 'Please select a PDF file first.',
+          confirmButtonColor: '#1e3a5f'
+      });
       return;
     }
     // update filename display
@@ -625,12 +663,22 @@
         }
         const parsedQuestions = parseQuestions(fullText);
         if (parsedQuestions.length === 0) {
-          alert("No questions could be parsed. Ensure PDF contains numbered questions with options A) B) C) D).");
+          Swal.fire({
+              icon: 'error',
+              title: 'Parsing Failed',
+              text: 'No questions could be parsed. Ensure PDF contains numbered questions with options A) B) C) D).',
+              confirmButtonColor: '#1e3a5f'
+          });
         }
         displayEditableJSON(parsedQuestions);
       } catch (err) {
         console.error(err);
-        alert("Error parsing PDF. Make sure it's a valid text-based PDF.");
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: `Successfully parsed ${parsedQuestions.length} questions!`,
+            confirmButtonColor: '#1e3a5f'
+        });
       }
     };
     reader.readAsArrayBuffer(file);
