@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>PDF to JSON Converter | Smart Question Parser</title>
+  <!-- PDF.js core library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Font Awesome 6 (free icons) for better UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f6f9fc 0%, #eef2f5 100%);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      padding: 2rem 1.5rem;
+      color: #1a2c3e;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #5b6e8c;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* header & card style */
+    .hero-card {
+      background: white;
+      border-radius: 2rem;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
+      padding: 1.8rem 2rem;
+      margin-bottom: 2rem;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.5);
+      backdrop-filter: blur(2px);
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1E3A5F, #2b5a8c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 i {
+      background: none;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+      color: #2c6e9e;
+      font-size: 2rem;
+    }
+
+    .sub {
+      color: #4a627a;
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      border-left: 3px solid #3b82f6;
+      padding-left: 1rem;
+    }
+
+    /* upload zone */
+    .upload-zone {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 1.5rem;
+      padding: 1.8rem;
+      text-align: center;
+      transition: 0.2s;
+      margin: 1rem 0 1.5rem 0;
+    }
+    .upload-zone:hover {
+      border-color: #3b82f6;
+      background: #f1f5f9;
+    }
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      padding: 0.75rem 1.8rem;
+      border-radius: 60px;
+      font-weight: 600;
+      color: #1e3a5f;
+      border: 1px solid #cbd5e1;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .file-label:hover {
+      background: #eef2ff;
+      border-color: #3b82f6;
+      transform: translateY(-1px);
+    }
+    #fileName {
+      margin-left: 12px;
+      font-size: 0.85rem;
+      color: #2c6e9e;
+      font-weight: 500;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 20px 0 10px;
+    }
+    .btn {
+      border: none;
+      padding: 0.7rem 1.6rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+    .btn-primary {
+      background: #1e3a5f;
+      color: white;
+      border: none;
+      box-shadow: 0 4px 8px rgba(30,58,95,0.2);
+    }
+    .btn-primary:hover {
+      background: #0f2c48;
+      transform: translateY(-2px);
+    }
+    .btn-outline {
+      background: white;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #3b82f6;
+    }
+    .btn-warning {
+      background: #fef9e3;
+      border-color: #facc15;
+      color: #854d0e;
+    }
+    .btn-warning:hover {
+      background: #fef3c7;
+    }
+    .stats-bar {
+      background: #eef2ff;
+      border-radius: 40px;
+      padding: 0.6rem 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      font-weight: 500;
+    }
+    .stats-bar i {
+      font-size: 1.2rem;
+      color: #2563eb;
+    }
+    #nullCount {
+      font-weight: 700;
+      background: #1e293b;
+      color: white;
+      padding: 0.2rem 0.7rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+    }
+    /* Question grid */
+    .questions-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      max-height: auto;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+    .question-card {
+      background: white;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+      border-left: 6px solid;
+      overflow: hidden;
+      transition: transform 0.1s ease;
+    }
+    .question-card.null-answer {
+      border-left-color: #f97316;
+      background: #fffaf5;
+    }
+    .question-card.valid-answer {
+      border-left-color: #22c55e;
+    }
+    .card-header {
+      background: #f9fafb;
+      padding: 1rem 1.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      border-bottom: 1px solid #edf2f7;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .card-header i {
+      color: #3b82f6;
+    }
+    .card-body {
+      padding: 1.4rem 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+    .form-group label {
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #475569;
+      display: block;
+      margin-bottom: 6px;
+    }
+    textarea, input[type="text"], select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border-radius: 14px;
+      border: 1.5px solid #e2e8f0;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: 0.2s;
+      background: #ffffff;
+    }
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+    .options-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    .option-item {
+      background: #fefefe;
+      border-radius: 14px;
+    }
+    .answer-selector {
+      margin-top: 0.5rem;
+      background: #f8fafc;
+      padding: 0.6rem 1rem;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: #e6f0ff;
+      border-radius: 30px;
+      padding: 0.25rem 0.9rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    hr {
+      margin: 0.5rem 0;
+    }
+    .footer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      background: white;
+      border-radius: 2rem;
+      color: #64748b;
+    }
+    @media (max-width: 720px) {
+      body { padding: 1rem; }
+      .hero-card { padding: 1.2rem; }
+      .options-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="hero-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+      <div>
+        <h1><i class="fas fa-file-pdf"></i> PDF → JSON Converter</h1>
+        <div class="sub">Intelligent question parser — extract questions, options & answers from academic PDFs</div>
+      </div>
+      <div class="stats-bar" id="statsPill">
+        <i class="fas fa-database"></i> <span id="totalQuestions">0</span> questions · <i class="fas fa-exclamation-triangle"></i> <span id="nullCountBadge">0</span> unanswered
+      </div>
+    </div>
+    <div class="upload-zone">
+      <label class="file-label" for="upload">
+        <i class="fas fa-cloud-upload-alt fa-lg"></i> Choose PDF file
+        <input type="file" id="upload" accept="application/pdf">
+      </label>
+      <span id="fileName" style="margin-left: 12px;"><i class="fas fa-file-alt"></i> No file selected</span>
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="processPDF()"><i class="fas fa-cogs"></i> Convert to JSON</button>
+        <button class="btn btn-outline" onclick="updateJSON()"><i class="fas fa-save"></i> 💾 Save Changes</button>
+        <button class="btn btn-outline" onclick="downloadJSON()"><i class="fas fa-download"></i> ⬇️ Download JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-card" style="padding: 1.2rem 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-bottom: 0.8rem;">
+      <h3 style="font-weight: 600;"><i class="fas fa-list-ul"></i> Extracted Questions</h3>
+      <span style="font-size: 0.75rem; background: #eef2ff; padding: 4px 12px; border-radius: 30px;"><i class="far fa-edit"></i> Editable fields — click to modify</span>
+    </div>
+    <div id="output" class="questions-grid">
+      <div class="empty-state">
+        <i class="fas fa-upload fa-3x" style="color: #94a3b8; margin-bottom: 12px;"></i>
+        <p>Upload a PDF and click "Convert to JSON" to start parsing questions.</p>
+        <p style="font-size: 0.8rem;">Supports numbered questions (1., 2., etc.) with options A) B) C) D) and Answer: X pattern.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Global data store for current questions array
+  window.currentData = [];
+
+  // Helper: clean option text from prefixes and "Answer:" remnants
+  function cleanOption(text) {
+    if (!text) return "";
+    return text
+      .replace(/^[a-d]\)\s*/i, '')       // remove a) b) etc
+      .replace(/^[a-d]\s*[.-]\s*/i, '')
+      .replace(/Answer:\s*[a-d]/gi, '')   // remove Answer: x 
+      .trim();
+  }
+
+  // Main parser (identical logic, robust)
+  function parseQuestions(fullText) {
+    const questions = [];
+    // match pattern like "1. content" or "12. content"
+    const regexSplit = /\b(\d+)\.\s+/g;
+    let match;
+    let lastIndex = 0;
+    const blocks = [];
+    while ((match = regexSplit.exec(fullText)) !== null) {
+      if (lastIndex !== 0) {
+        const content = fullText.substring(lastIndex, match.index);
+        if (content.trim()) blocks.push(content.trim());
+      }
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < fullText.length) {
+      blocks.push(fullText.substring(lastIndex).trim());
+    }
+
+    if (blocks.length === 0 && fullText.trim().length > 0) {
+      // fallback: split by newline patterns
+      const altBlocks = fullText.split(/\n\s*\d+\.\s+/);
+      altBlocks.forEach(bl => { if(bl.trim()) blocks.push(bl.trim()); });
+    }
+
+    for (let rawBlock of blocks) {
+      // Identify choices by a), b), c), d) or A. B. C. D.
+      const optionPattern = /([a-d])\s*[\)\.\-]\s*([^\n\r]+?)(?=(?:[a-d]\s*[\)\.\-])|$)/gi;
+      const optionsMap = { a: "", b: "", c: "", d: "" };
+      let optionMatch;
+      const tempOptions = [];
+      while ((optionMatch = optionPattern.exec(rawBlock)) !== null) {
+        const letter = optionMatch[1].toLowerCase();
+        const value = optionMatch[2].trim();
+        if (optionsMap.hasOwnProperty(letter)) {
+          optionsMap[letter] = cleanOption(value);
+        }
+        tempOptions.push(letter);
+      }
+      
+      // Extract question text: everything before first occurrence of a) / b) / etc.
+      let questionText = rawBlock;
+      const firstOptionIndex = rawBlock.search(/\b[a-d]\s*[\)\.\-]/i);
+      if (firstOptionIndex !== -1) {
+        questionText = rawBlock.substring(0, firstOptionIndex).trim();
+      }
+      // Remove any leftover "Answer:" noise from question
+      questionText = questionText.replace(/Answer:\s*[a-d]/gi, '').trim();
+      
+      // If options missing but maybe inline? fallback: split by lines
+      if (!optionsMap.a && !optionsMap.b && !optionsMap.c && !optionsMap.d) {
+        const lines = rawBlock.split(/\r?\n/).filter(l => l.trim().length > 0);
+        let optIdx = 0;
+        for (let line of lines) {
+          const low = line.toLowerCase();
+          if (low.match(/^[a-d][\s\.\)\-]/)) {
+            const letter = low[0];
+            const val = line.substring(1).replace(/^[\s\.\)\-]+/, '').trim();
+            if (optionsMap[letter] !== undefined) optionsMap[letter] = cleanOption(val);
+            optIdx++;
+          }
+        }
+      }
+
+      // Extract answer (Answer: B or Answer: b)
+      let answer = null;
+      const ansRegex = /Answer:\s*([a-d])/i;
+      const ansMatch = rawBlock.match(ansRegex);
+      if (ansMatch && ansMatch[1]) {
+        answer = ansMatch[1].toLowerCase();
+      }
+      
+      // If still no answer, sometimes in text "Ans: c"
+      const altAns = rawBlock.match(/(?:Ans|Answer)[:\s]*([a-d])/i);
+      if (!answer && altAns) answer = altAns[1].toLowerCase();
+      
+      // final push only if we have at least some meaningful content
+      if (questionText.length > 0 || Object.values(optionsMap).some(v => v.length > 0)) {
+        questions.push({
+          question: questionText || "(Question text not extracted clearly)",
+          options: {
+            a: optionsMap.a || "",
+            b: optionsMap.b || "",
+            c: optionsMap.c || "",
+            d: optionsMap.d || ""
+          },
+          answer: answer || null
+        });
+      }
+    }
+    
+    // if no questions at all but text exists, create a dummy fallback to avoid empty
+    if (questions.length === 0 && fullText.trim().length > 0) {
+      questions.push({
+        question: "Could not auto-detect structured questions. Please review raw text.",
+        options: { a: "Option A", b: "Option B", c: "Option C", d: "Option D" },
+        answer: null
+      });
+    }
+    return questions;
+  }
+
+  // Display fully editable UI cards (enhanced)
+  function displayEditableJSON(data) {
+    if (!data || !data.length) {
+      document.getElementById("output").innerHTML = `<div class="empty-state"><i class="fas fa-info-circle"></i> No questions loaded. Upload PDF & convert.</div>`;
+      document.getElementById("totalQuestions").innerText = "0";
+      document.getElementById("nullCountBadge").innerText = "0";
+      document.getElementById("nullCount").innerHTML = "Null Answers: 0";
+      return;
+    }
+    
+    let nullCount = 0;
+    let html = '';
+    
+    data.forEach((item, idx) => {
+      const isNull = !item.answer || item.answer === null || item.answer === "";
+      if (isNull) nullCount++;
+      const cardClass = isNull ? "null-answer" : "valid-answer";
+      const ansVal = item.answer || "";
+      
+      html += `
+        <div class="question-card ${cardClass}" data-qidx="${idx}">
+          <div class="card-header">
+            <i class="fas fa-question-circle"></i> Question ${idx+1}
+            ${isNull ? '<span class="badge" style="background:#ffe4e2; color:#b91c1c;"><i class="fas fa-question"></i> Missing answer</span>' : '<span class="badge" style="background:#dcfce7; color:#166534;"><i class="fas fa-check-circle"></i> Answered</span>'}
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label><i class="far fa-file-alt"></i> Question Text</label>
+              <textarea data-index="${idx}" data-field="question" rows="2">${escapeHtml(item.question)}</textarea>
+            </div>
+            
+            <label style="font-weight:600; margin-bottom: 8px; display:block;"><i class="fas fa-list"></i> Options</label>
+            <div class="options-row">
+              <div class="option-item"><label>A:</label> <input type="text" data-index="${idx}" data-field="a" value="${escapeHtml(item.options.a)}" placeholder="Option A"></div>
+              <div class="option-item"><label>B:</label> <input type="text" data-index="${idx}" data-field="b" value="${escapeHtml(item.options.b)}" placeholder="Option B"></div>
+              <div class="option-item"><label>C:</label> <input type="text" data-index="${idx}" data-field="c" value="${escapeHtml(item.options.c)}" placeholder="Option C"></div>
+              <div class="option-item"><label>D:</label> <input type="text" data-index="${idx}" data-field="d" value="${escapeHtml(item.options.d)}" placeholder="Option D"></div>
+            </div>
+            
+            <div class="answer-selector">
+              <i class="fas fa-gavel"></i> <strong>Correct Answer:</strong>
+              <select data-index="${idx}" data-field="answer" style="width: auto; min-width: 100px;">
+                <option value="">— Not set —</option>
+                <option value="a" ${ansVal === 'a' ? 'selected' : ''}>A</option>
+                <option value="b" ${ansVal === 'b' ? 'selected' : ''}>B</option>
+                <option value="c" ${ansVal === 'c' ? 'selected' : ''}>C</option>
+                <option value="d" ${ansVal === 'd' ? 'selected' : ''}>D</option>
+              </select>
+              <span style="font-size: 0.7rem; color:#475569;"><i class="fas fa-pen-alt"></i> editable</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    document.getElementById("output").innerHTML = html;
+    document.getElementById("totalQuestions").innerText = data.length;
+    document.getElementById("nullCountBadge").innerText = nullCount;
+    const nullSpan = document.getElementById("nullCount");
+    if (nullSpan) nullSpan.innerHTML = `<i class="fas fa-ban"></i> Unanswered: ${nullCount}`;
+    else {
+      const newSpan = document.createElement("div");
+    }
+    // update statsPill and also maintain old element for compatibility
+    const oldNullElem = document.getElementById("nullCount");
+    if(oldNullElem) oldNullElem.innerHTML = `Null Answers: ${nullCount}`;
+    window.currentData = data;
+  }
+  
+  // simple escape to avoid XSS
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+      return c;
+    });
+  }
+  
+  // updateJSON from UI controls (preserves all functionality)
+  function updateJSON() {
+    if (!window.currentData || window.currentData.length === 0) {
+      alert("No data loaded. Please convert a PDF first.");
+      return;
+    }
+    const inputs = document.querySelectorAll("[data-index]");
+    inputs.forEach(input => {
+      const idx = parseInt(input.dataset.index, 10);
+      if (isNaN(idx)) return;
+      const field = input.dataset.field;
+      if (field === "question") {
+        if (window.currentData[idx]) window.currentData[idx].question = input.value;
+      } else if (["a", "b", "c", "d"].includes(field)) {
+        if (window.currentData[idx] && window.currentData[idx].options) {
+          window.currentData[idx].options[field] = input.value;
+        }
+      } else if (field === "answer") {
+        if (window.currentData[idx]) {
+          window.currentData[idx].answer = input.value && input.value !== "" ? input.value : null;
+        }
+      }
+    });
+    // re-render to update null highlighting and badges
+    displayEditableJSON(window.currentData);
+    alert("✅ JSON data updated! You can now download the modified JSON.");
+  }
+  
+  function downloadJSON() {
+    if (!window.currentData || window.currentData.length === 0) {
+      alert("No data to download. Please convert PDF first.");
+      return;
+    }
+    const jsonStr = JSON.stringify(window.currentData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "questions_fixed.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+  
+  // process PDF using pdf.js
+  async function processPDF() {
+    const fileInput = document.getElementById('upload');
+    const file = fileInput.files[0];
+    if (!file) {
+      alert("Please select a PDF file first.");
+      return;
+    }
+    // update filename display
+    document.getElementById("fileName").innerHTML = `<i class="fas fa-check-circle"></i> ${escapeHtml(file.name)}`;
+    const reader = new FileReader();
+    reader.onload = async function(evt) {
+      const typedarray = new Uint8Array(evt.target.result);
+      try {
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          fullText += strings.join(" ") + "\n";
+        }
+        const parsedQuestions = parseQuestions(fullText);
+        if (parsedQuestions.length === 0) {
+          alert("No questions could be parsed. Ensure PDF contains numbered questions with options A) B) C) D).");
+        }
+        displayEditableJSON(parsedQuestions);
+      } catch (err) {
+        console.error(err);
+        alert("Error parsing PDF. Make sure it's a valid text-based PDF.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  
+  // file name preview
+  document.getElementById('upload').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : "No file selected";
+    document.getElementById("fileName").innerHTML = `<i class="fas fa-paperclip"></i> ${escapeHtml(fileName)}`;
+  });
+  
+  // (Optional) ensure all functionality bound, no conflicts
+  window.processPDF = processPDF;
+  window.updateJSON = updateJSON;
+  window.downloadJSON = downloadJSON;
+</script>
+</body>
+</html>
